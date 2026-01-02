@@ -1,6 +1,7 @@
 # Custom ignore files
 rewriter.log
 /output
+/LibreHardwareMonitor
 
 
 
