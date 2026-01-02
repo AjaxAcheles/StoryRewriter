@@ -1,5 +1,5 @@
-# Local AI Story Rewriter Pipeline
-
+## Local LLM Story Rewriter Pipeline
+ 
 A sophisticated, offline automation pipeline designed to rewrite long-form fiction using local Large Language Models (via Ollama). 
 
 Unlike simple "copy-paste" tools, this system handles the complexities of context windows, narrative continuity, and hardware safety. It splits manuscripts into token-aware chunks, rewrites them using a customizable style, and seamlessly stitches them back together using semantic vector analysis.
@@ -24,7 +24,7 @@ Unlike simple "copy-paste" tools, this system handles the complexities of contex
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/AjaxAcheles/StoryRewriter.git](https://github.com/AjaxAcheles/StoryRewriter.git)
+    git clone https://github.com/AjaxAcheles/StoryRewriter.git
     cd StoryRewriter
     ```
 
@@ -96,6 +96,36 @@ You can customize the entire pipeline via the JSON config file. Key settings inc
 * `monitor.py`: Connects to Windows WMI sensors to watch CPU temperatures.
 * `power_utils.py`: Managing Windows Power Plans to throttle CPU and prevent overheating.
 * `utils.py`: Helper functions for file I/O and regex.
+
+## 🔍 Technical Runtime Breakdown
+
+Here is exactly what happens when you run the pipeline:
+
+1.  **Initialization & Safety Check:**
+    * The script loads the config and connects to the local Ollama server.
+    * It initializes the `TemperatureGuard` to watch hardware sensors.
+    * It triggers `WindowsCpuThrottler` to disable Turbo Boost (limiting CPU state to 99%) to prevent overheating during the intensive workload.
+
+2.  **Ingestion & Analysis:**
+    * The manuscript is loaded and split into chapters (using Regex detection or length fallback).
+    * The `Chunker` analyzes the text using the **actual LLM tokenizer** (not just word counts) to ensure chunks fit the context window perfectly.
+
+3.  **The Processing Loop (Per Chunk):**
+    * **Context Overlap:** Each new chunk includes the last ~300 tokens of the *previous* chunk so the AI knows what just happened.
+    * **Inference:** The chunk is sent to Ollama with your `style_prompt`.
+    * **Validation:** The output is measured. If the output is significantly shorter than the input (a sign of summarization), the system **rejects** it and retries with a stricter prompt.
+    * **Thermal Pause:** Between chunks, the system checks if the CPU is > 75°C. If so, it sleeps until the temperature drops to 68°C.
+
+4.  **Semantic Stitching:**
+    * The system takes the rewritten chunks (which now have overlapping narrative content but different wording).
+    * It uses `sentence-transformers` to convert sentences into vector embeddings.
+    * It scans the "Tail" of Chunk A and the "Head" of Chunk B to find the **Semantic Pivot Point**—the exact sentence where the narrative aligns mathematically.
+    * It splices the text at this pivot point, removing the overlap and creating a seamless transition.
+
+5.  **Finalization:**
+    * The stitched chapters are saved.
+    * CPU settings are restored to normal.
+    * Performance metadata is dumped to JSON.
 
 ## ⚠️ Troubleshooting
 
