@@ -7,13 +7,13 @@
   },
   "model": {
     "provider": "ollama",
-    "model_name": "llama3.1",
-    "num_thread": 8,
-    "num_ctx": 2048,
-    "temperature": 0.65,
+    "model_name": "gemma2:latest",
+    "num_thread": 9,
+    "num_ctx": 8192,
+    "temperature": 0.8,
     "top_p": 0.9,
     "top_k": 40,
-    "num_predict": 2000,
+    "num_predict": 4000,
     "num_keep": 24,
     "seed": 5768432,
     "ollama_base_url": "http://localhost:11434",
@@ -24,14 +24,15 @@
     "additional_instructions_on_retry": "\n\n[IMPORTANT RETRY INSTRUCTION]: Your previous draft was REJECTED because it did not follow the rules. You MUST NOT summarize. You MUST preserve all dialogue and internal monologue. Rephrase the text below. \n Remember to give me ONLY the rephrased text as output, with no additional commentary or notes."
   },
   "chunking": {
-    "context_window_tokens": 4096,
-    "target_chunk_size_tokens": 600,
-    "overlap_tokens": 300,
+    "context_window_tokens": 8192,
+    "target_chunk_size_tokens": 900,
+    "overlap_tokens": 600,
     "reserve_for_instructions_tokens": 400,
     "reserve_for_output_tokens": 2000,
     "min_chunk_size_tokens": 500,
     "scene_separator_regex": "\\n\\s*[\\*\\-\\_]{3,}\\s*\\n",
     "chars_per_token_estimate": 3.5,
+    "fallback_tokens_per_word": 1.5,
     "safety_buffer_tokens": 500
   },
   "monitoring": {
@@ -57,8 +58,8 @@
   "stitching": {
     "model_name": "all-MiniLM-L6-v2",
     "window_radius": 1,
-    "similarity_threshold": 0.78,
-    "scan_depth_sentences": 30,
+    "similarity_threshold": 0.85,
+    "scan_depth_sentences": 50,
     "refinement_threshold": 0.90,
     "search_radius_buffer": 2
   },
@@ -70,7 +71,7 @@
     "save_metadata": true
   },
   "system": {
-    "shutdown_after_completion": false,
+    "shutdown_after_completion": true,
     "shutdown_timer_seconds": 60
   }
 }

@@ -302,8 +302,8 @@ class StoryRewriterPipeline:
         save_path = debug_dir / chunk_filename
         
         debug_content = (
-            f"--- INPUT (Overlap + Content) ---\n{chunk['text']}\n\n"
-            f"--- REWRITTEN ---\n{rewritten}\n"
+            f"## INPUT (Overlap + Content)\n\n{chunk['text']}\n\n"
+            f"## REWRITTEN\n\n{rewritten}\n"
         )
         save_text(debug_content, str(save_path))
 

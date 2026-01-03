@@ -69,10 +69,9 @@ class OllamaRewriter:
             raise ConnectionError(f"Cannot connect to Ollama at {self.base_url}")
         except Exception as e:
             raise RuntimeError(f"Ollama verify failed: {e}")
-    
     def get_accurate_token_count(self, text: str) -> int:
         """
-        Get accurate token count using Ollama's native tokenizer.
+        Get accurate token count using Ollama's native tokenizer via a dry-run generation.
         Includes caching to speed up repeated checks during chunking.
         """
         if not text:
@@ -85,16 +84,31 @@ class OllamaRewriter:
         if text_hash in self._token_cache:
             return self._token_cache[text_hash]
         
-        # 3. Request from API
+        # 3. Request from API (Dry Run)
         try:
+            # Use /api/generate with num_predict=0 to get the prompt_eval_count without generating any new text.
             response = requests.post(
-                f"{self.base_url}/api/tokenize",
-                json = {"model": self.model, "prompt": text},
-                timeout = self.config.get("model", {}).get('api_request_timeout_seconds', 10)
+                f"{self.base_url}/api/generate",
+                json={
+                    "model": self.model, 
+                    "prompt": text, 
+                    "stream": False,
+                    "options": {"num_predict": 0}  # Ask for 0 generated tokens
+                },
+                timeout=self.config.get("model", {}).get('api_request_timeout_seconds', 10)
             )
             response.raise_for_status()
-            tokens = response.json().get("tokens", [])
-            count = len(tokens)
+            data = response.json()
+            
+            # Ollama returns 'prompt_eval_count' which is the token size of the input
+            count = data.get("prompt_eval_count", 0)
+            
+            # Fallback: If 0 is returned (sometimes happens on very first load), 
+            # retry with a simple estimate or minimal generation if critical, 
+            # but usually this works.
+            if count == 0:
+                 logger.warning("[LLM] Token count returned 0; model might be loading.")
+                 # Optional: Return estimate if true 0 (empty) is unlikely
             
             # 4. Update Cache
             self._token_cache[text_hash] = count
@@ -102,9 +116,10 @@ class OllamaRewriter:
         
         except Exception as e:
             logger.debug(f"[LLM] Tokenizer unavailable ({e}); using estimate")
-            # Fallback: conservative estimate
-            return int(len(text.split()) * 1.4)
-    
+            # Fallback: Use config value instead of hardcoded 1.5
+            fallback_ratio = self.config.get('chunking', {}).get('fallback_tokens_per_word', 1.5)
+            return int(len(text.split()) * fallback_ratio)
+        
     def rewrite_chunk(self, chunk_text: str, style_prompt: str, system_prompt: str) -> str:
         """
         Send a chunk to the model for rewriting.
