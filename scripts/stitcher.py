@@ -152,7 +152,7 @@ class ChunkStitcher:
         Scans a small radius around initial B-pivot using RAW vectors
         to fix boundary smoothing artifacts.
         """
-        search_radius = self.window_radius + 2 
+        search_radius = self.window_radius + self.config.get('stitching', {}).get('search_radius_buffer', 2) 
         start = max(0, initial_b_idx - search_radius)
         end = min(len(vecs_b), initial_b_idx + search_radius + 1)
         

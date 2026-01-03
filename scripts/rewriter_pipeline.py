@@ -48,7 +48,7 @@ class StoryRewriterPipeline:
         self.rewriter = OllamaRewriter(self.config)
         
         # 2. Initialize Chunker
-        self.chunker = TokenAwareChunker(self.rewriter)
+        self.chunker = TokenAwareChunker(self.config, self.rewriter)
         
         # 3. Initialize Stitcher
         self.stitcher = ChunkStitcher(self.config)
@@ -361,10 +361,10 @@ if __name__ == '__main__':
         pipeline.run()
         
         # Optional Shutdown
-        if pipeline.config.get('shutdown after_completion', False):
+        if pipeline.config.get('shutdown_after_completion', False):
             logger.info("[Main] Job complete. Shutting down system in 60 seconds...")
             # /s = shutdown, /t 60 = 60 second timer
-            os.system("shutdown /s /t 60")
+            os.system(f"shutdown /s /t {pipeline.config.get('system', {}).get('shutdown_timer_seconds', 60)}")
         
     except Exception as e:
         logger.critical(f"[Main] CRITICAL FAILURE: {e}", exc_info=True)

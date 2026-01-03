@@ -55,7 +55,7 @@ class OllamaRewriter:
     def _verify_connection(self) -> None:
         """Check if Ollama is running and model is available."""
         try:
-            response = requests.get(f"{self.base_url}/api/tags", timeout=5)
+            response = requests.get(f"{self.base_url}/api/tags", timeout=self.config.get("model", {}).get('api_request_timeout_seconds', 10))
             response.raise_for_status()
             models = response.json().get('models', [])
             model_names = [m.get('name') for m in models]
@@ -89,8 +89,8 @@ class OllamaRewriter:
         try:
             response = requests.post(
                 f"{self.base_url}/api/tokenize",
-                json={"model": self.model, "prompt": text},
-                timeout=10
+                json = {"model": self.model, "prompt": text},
+                timeout = self.config.get("model", {}).get('api_request_timeout_seconds', 10)
             )
             response.raise_for_status()
             tokens = response.json().get("tokens", [])
@@ -198,7 +198,7 @@ class OllamaRewriter:
                 
                 # If retrying, append strict instructions
                 if attempt > 0:
-                    target_words = int(len(chunk_text.split()) * 0.9)
+                    target_words = int(len(chunk_text.split()) * self.config.get('processing', {}).get('retry_strictness_ratio', 0.85))
                     
                     stricter_instruction = (self.config.get('prompts', {}).get("additional_instructions_on_retry", 
                         "\n\n[IMPORTANT RETRY INSTRUCTION]: Your previous draft was REJECTED because it was too short."
@@ -219,16 +219,13 @@ class OllamaRewriter:
                     logger.warning(f"[LLM] Max retries reached. Accepting imperfect text (Error: {e}).")
                     return e.text 
                 
-                if attempt < max_retries:
-                    wait_time = attempt * 2
+                if attempt < max_retries:                    
+                    logger.warning(f"[LLM] Attempt {attempt + 1} failed: {e}.")
                     
-                    logger.warning(f"[LLM] Attempt {attempt + 1} failed: {e}. Waiting {wait_time}s")
-                    
-                    # 3. Check Temps before sleeping/retrying
+                    # 3. Check Temps before retrying
                     if self.temp_guard:
                         self.temp_guard.check_and_pause()
                     
-                    time.sleep(wait_time)
                 else:
                     logger.error(f"[LLM] Failed after {max_retries + 1} attempts")
                     raise
@@ -273,7 +270,7 @@ class OllamaRewriter:
         
         # Check 5: Repetition scan (Informational)
         sentences = [s.strip() for s in re.split(r'[.!?]', response_text) if s.strip()]
-        if len(sentences) > 4:
+        if len(sentences) > self.config.get('processing', {}).get('repetition_threshold_count', 4):
             duplicates = set()
             seen = set()
             for s in sentences:

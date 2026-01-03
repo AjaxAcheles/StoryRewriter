@@ -16,12 +16,14 @@ class TokenAwareChunker:
     Now requires an OllamaRewriter instance for accurate token counting.
     """
     
-    def __init__(self, rewriter=None):
+    def __init__(self, config, rewriter=None):
         """
         Args:
+            config: Configuration dictionary.
             rewriter: Instance of OllamaRewriter (used for token counting).
                       Can be set later via set_rewriter if circular imports are an issue.
         """
+        self.config = config
         self.rewriter = rewriter
         
     def set_rewriter(self, rewriter):
@@ -69,7 +71,7 @@ class TokenAwareChunker:
             return text
 
         # Step 1: Estimate character count based on target tokens (4 chars/token safety margin)
-        estimated_chars = int(target_tokens * 4.0)
+        estimated_chars = int(target_tokens * self.config.get('chunking', {}).get('chars_per_token_estimate', 4.0))
         search_start = max(0, len(text) - estimated_chars)
         
         # Step 2: Align to the nearest sentence boundary
@@ -103,8 +105,8 @@ class TokenAwareChunker:
         overlap_tokens = config['chunking']['overlap_tokens']
         min_tokens = config['chunking']['min_chunk_size_tokens']
         
-        # 1. Split text by visual separators (***, ---, ___)
-        scene_splits = re.split(r'\n\s*[\*\-\_]{3,}\s*\n', chapter_text)
+        # 1. Split text by visual separators (***, ---, ___, etc.)
+        scene_splits = re.split(config.get('chunking', {}).get('scene_separator_regex', r'\\n\\s*[\\*\\-\\_]{3,}\\s*\\n'), chapter_text)
         scenes = [s.strip() for s in scene_splits if s.strip()]
         
         logger.info(f"[Chunker] Scenes detected: {len(scenes)}")
@@ -152,10 +154,10 @@ class TokenAwareChunker:
             
             # Safety Check: Prevent context window overflow
             context_window = config['chunking']['context_window_tokens']
-            if full_tokens > context_window - 500: 
+            if full_tokens > context_window - config.get('chunking', {}).get('safety_buffer_tokens', 500): 
                 logger.warning(f"[Chunker] Chunk {i} near limit ({full_tokens}); trimming overlap")
                 # Aggressively trim overlap to fit context
-                while full_tokens > context_window - 600 and len(overlap_text) > 50:
+                while full_tokens > context_window - config.get('chunking', {}).get('safety_buffer_tokens', 500) and len(overlap_text) > 50:
                     overlap_text = overlap_text[len(overlap_text)//2:]
                     overlap_text = overlap_text[self._find_sentence_boundary(overlap_text, 0, 'forward'):]
                     full_text = overlap_text + "\n\n" + text_content
@@ -193,7 +195,7 @@ class TokenAwareChunker:
                 break
                 
             # Step 1: Estimate split point (3 chars/token)
-            estimated_chars = target_tokens * 3 
+            estimated_chars = int(target_tokens * round(self.config.get('chunking', {}).get('chars_per_token_estimate', 4.0)))
             if estimated_chars >= len(remaining_text):
                 estimated_chars = len(remaining_text) - 1
                 
