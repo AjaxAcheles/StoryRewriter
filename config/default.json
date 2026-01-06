@@ -1,6 +1,6 @@
 {
   "manuscript": {
-    "input_path": "./input/test_chapter.md",
+    "input_path": "./input/spirit_child.md",
     "encoding": "utf-8",
     "chapter_marker_pattern": "^Chapter\\s+\\d+",
     "fallback_chapter_length_words": 4000
