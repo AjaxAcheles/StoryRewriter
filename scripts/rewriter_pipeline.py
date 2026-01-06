@@ -198,7 +198,8 @@ class StoryRewriterPipeline:
 
         # Thermal Check
         self.temp_guard.check_and_pause()
-        
+
+        # Process each chunk        
         rewritten_chunks = []
         for i, chunk in enumerate(chunks):
             try:

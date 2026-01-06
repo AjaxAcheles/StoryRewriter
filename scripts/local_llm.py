@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Interface to local LLM (Ollama).
-CORRECTED: Includes Ollama native tokenizer, caching, error handling, response validation.
 """
 
 import requests
