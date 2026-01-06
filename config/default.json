@@ -1,6 +1,6 @@
 {
   "manuscript": {
-    "input_path": "./input/CH 15.md",
+    "input_path": "./input/test_chapter.md",
     "encoding": "utf-8",
     "chapter_marker_pattern": "^Chapter\\s+\\d+",
     "fallback_chapter_length_words": 4000
@@ -17,6 +17,7 @@
     "num_keep": 24,
     "seed": 5768432,
     "ollama_base_url": "http://localhost:11434",
+    "tiktoken_encoding": "cl100k_base",
     "timeout_seconds": 800
   },
   "prompts": {
@@ -71,7 +72,7 @@
     "save_metadata": true
   },
   "system": {
-    "shutdown_after_completion": true,
+    "shutdown_after_completion": false,
     "shutdown_timer_seconds": 60
   }
 }

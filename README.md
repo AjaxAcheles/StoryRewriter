@@ -54,7 +54,7 @@ Unlike simple "copy-paste" tools, this system handles the complexities of contex
 
 3.  **Run the Pipeline:**
     ```bash
-    python rewriter_pipeline.py config/default.json
+    python scripts/rewriter_pipeline.py config/default.json
     ```
 
 4.  **Monitor Progress:**

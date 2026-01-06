@@ -11,6 +11,7 @@ import logging
 import re
 import hashlib
 from typing import Dict, Optional, Tuple
+import tiktoken
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,13 @@ class OllamaRewriter:
         
         # Init token cache
         self._token_cache = {}
+
+        # Init tokenizer
+        try: 
+            self.tokenizer = tiktoken.get_encoding(self.config.get("model", {}).get('tiktoken_encoding', '"cl100k_base"'))
+        except Exception as e:
+            logger.error(f"[LLM] Tiktoken failed to load: {e}")
+            self.tokenizer = None
         
         # Pre-flight connection check
         self._verify_connection()
@@ -69,56 +77,23 @@ class OllamaRewriter:
             raise ConnectionError(f"Cannot connect to Ollama at {self.base_url}")
         except Exception as e:
             raise RuntimeError(f"Ollama verify failed: {e}")
+        
     def get_accurate_token_count(self, text: str) -> int:
         """
-        Get accurate token count using Ollama's native tokenizer via a dry-run generation.
-        Includes caching to speed up repeated checks during chunking.
+        Get instantaneous token count using local tiktoken library.
         """
         if not text:
             return 0
-            
-        # 1. Generate MD5 hash for cache key
-        text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
         
-        # 2. Check Cache
-        if text_hash in self._token_cache:
-            return self._token_cache[text_hash]
+        if self.tokenizer:
+            # This runs in microseconds on the CPU
+            return len(self.tokenizer.encode(text))
         
-        # 3. Request from API (Dry Run)
-        try:
-            # Use /api/generate with num_predict=0 to get the prompt_eval_count without generating any new text.
-            response = requests.post(
-                f"{self.base_url}/api/generate",
-                json={
-                    "model": self.model, 
-                    "prompt": text, 
-                    "stream": False,
-                    "options": {"num_predict": 0}  # Ask for 0 generated tokens
-                },
-                timeout=self.config.get("model", {}).get('api_request_timeout_seconds', 10)
-            )
-            response.raise_for_status()
-            data = response.json()
-            
-            # Ollama returns 'prompt_eval_count' which is the token size of the input
-            count = data.get("prompt_eval_count", 0)
-            
-            # Fallback: If 0 is returned (sometimes happens on very first load), 
-            # retry with a simple estimate or minimal generation if critical, 
-            # but usually this works.
-            if count == 0:
-                 logger.warning("[LLM] Token count returned 0; model might be loading.")
-                 # Optional: Return estimate if true 0 (empty) is unlikely
-            
-            # 4. Update Cache
-            self._token_cache[text_hash] = count
-            return count
-        
-        except Exception as e:
-            logger.debug(f"[LLM] Tokenizer unavailable ({e}); using estimate")
-            # Fallback: Use config value instead of hardcoded 1.5
-            fallback_ratio = self.config.get('chunking', {}).get('fallback_tokens_per_word', 1.5)
-            return int(len(text.split()) * fallback_ratio)
+        # Fallback only if tiktoken failed to install/load
+        fallback_ratio = self.config.get('chunking', {}).get('fallback_tokens_per_word', 1.5)
+        tokens_estimate = int(len(text.split()) * fallback_ratio)
+        logger.debug(f"[LLM] Tokenizer unavailable; Estimating token count {tokens_estimate} using fallback ratio {fallback_ratio}")
+        return tokens_estimate
         
     def rewrite_chunk(self, chunk_text: str, style_prompt: str, system_prompt: str) -> str:
         """
