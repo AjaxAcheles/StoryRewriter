@@ -8,8 +8,7 @@ import json
 import time
 import logging
 import re
-import hashlib
-from typing import Dict, Optional, Tuple
+from typing import Dict, Tuple
 import tiktoken
 
 logger = logging.getLogger(__name__)
@@ -151,10 +150,6 @@ class OllamaRewriter:
             
             logger.debug(f"[LLM] Inference complete: {elapsed:.1f}s")
             return rewritten_text
-        
-        # Error Propagation
-        except ValidationFailure:
-            raise
 
         except requests.exceptions.Timeout:
             raise TimeoutError(f"Ollama timed out (>{self.timeout}s)")

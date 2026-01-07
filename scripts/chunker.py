@@ -26,10 +26,6 @@ class TokenAwareChunker:
         self.config = config
         self.rewriter = rewriter
         
-    def set_rewriter(self, rewriter):
-        # Update the rewriter instance used for token counting
-        self.rewriter = rewriter
-
     def _get_token_count(self, text: str) -> int:
         # Return accurate count via API if available, otherwise estimate (1.3 tokens/word)
         if self.rewriter:

@@ -258,9 +258,6 @@ class StoryRewriterPipeline:
                 raise
         
         self.stats['total_chunks'] += len(chunks)
-
-        if not rewritten_chunks:
-            raise RuntimeError("All chunks failed.")
         
         # 4. Stitching
         stitched_text = self.stitcher.stitch_chapter({'rewritten_chunks': rewritten_chunks})

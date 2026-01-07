@@ -107,9 +107,6 @@ class ChunkStitcher:
         vecs_a = self.model.encode(scan_sents_a)
         vecs_b = self.model.encode(scan_sents_b)
 
-        if len(vecs_a) == 0 or len(vecs_b) == 0:
-             return text_a, text_b
-
         # 3. Apply Smoothing Window
         smoothed_a = self._apply_sliding_window(vecs_a)
         smoothed_b = self._apply_sliding_window(vecs_b)

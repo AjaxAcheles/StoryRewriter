@@ -47,7 +47,7 @@ def detect_chapters(text: str, config: Dict) -> List[Dict]:
     Returns:
         List of dicts with keys: number, title, text, word_count, char_count
     """
-    pattern = config['manuscript'].get('chapter_marker_pattern', '^# Chapter\\s+\\d+')
+    pattern = config['manuscript'].get('chapter_marker_pattern', '^## Chapter\\s+\\d+')
     
     try:
         matches = list(re.finditer(pattern, text, re.MULTILINE))
@@ -149,13 +149,6 @@ def _split_by_length(text: str, config: Dict) -> List[Dict]:
     logger.info(f"[Utils] Split into {len(chapters)} chapters (by length)")
     return chapters
 
-def estimate_tokens(text: str, tokens_per_word: float = 1.3) -> int:
-    """
-    Rough estimate of token count (fallback when Ollama not available).
-    """
-    word_count = len(text.split())
-    return int(word_count * tokens_per_word)
-
 def save_json(data: Dict, file_path: str) -> None:
     """Save dictionary to JSON file."""
     Path(file_path).parent.mkdir(parents=True, exist_ok=True)
@@ -169,11 +162,3 @@ def save_text(text: str, file_path: str) -> None:
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(text)
     logger.debug(f"[IO] Saved: {file_path}")
-
-def word_count(text: str) -> int:
-    """Count words in text."""
-    return len(text.split())
-
-def get_length_ratio(original_words: int, rewritten_words: int) -> float:
-    """Calculate ratio of rewritten to original word count."""
-    return rewritten_words / original_words if original_words > 0 else 1.0
