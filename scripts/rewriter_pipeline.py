@@ -304,28 +304,34 @@ class StoryRewriterPipeline:
             f"## REWRITTEN\n\n{rewritten}\n"
         )
         save_text(debug_content, str(save_path))
-
     def _save_all_chapters(self, chapters: List[Dict]) -> None:
         """Save individual chapter files and combined manuscript."""
         output_dir = Path(self.config['output']['output_dir'])
         chapters_dir = output_dir / 'chapters'
         chapters_dir.mkdir(parents=True, exist_ok=True)
         
+        combined_content_blocks = []
+
         # Save chapters
         for ch in chapters:
+            # 1. Save Individual Chapter
             ch_file = chapters_dir / f"chapter_{ch['chapter_number']:02d}.md"
             content = f"# {ch['chapter_title']}\n\n{ch['stitched_text']}"
             save_text(content, str(ch_file))
             logger.info(f"  Saved: {ch_file.name}")
+            
+            # 2. Add to list for combined file
+            combined_content_blocks.append(content)
         
-        # Save Combined
+        # Save Combined (Join with separator only BETWEEN items)
         combined_file = output_dir / 'full_manuscript_rewritten.md'
-        combined_content = ""
-        for ch in chapters:
-            combined_content += f"# {ch['chapter_title']}\n\n{ch['stitched_text']}\n\n---\n\n"
-        save_text(combined_content, str(combined_file))
+        
+        # FIX: proper joining
+        full_text = "\n\n---\n\n".join(combined_content_blocks)
+        
+        save_text(full_text, str(combined_file))
         logger.info(f"  Combined: {combined_file.name}")
-    
+
     def _save_metadata(self, chapters: List[Dict]) -> None:
         """Save processing statistics and metadata."""
         metadata = {

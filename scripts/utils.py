@@ -114,6 +114,7 @@ def _split_by_length(text: str, config: Dict) -> List[Dict]:
         
         para_words = len(para.split())
         
+        # Check if adding this paragraph exceeds target length
         if current_word_count + para_words > target_length and current_chapter:
             # Finalize current chapter
             chapter_text = '\n\n'.join(current_chapter)
@@ -146,7 +147,6 @@ def _split_by_length(text: str, config: Dict) -> List[Dict]:
             'end_char': 0
         })
     
-    logger.info(f"[Utils] Split into {len(chapters)} chapters (by length)")
     return chapters
 
 def save_json(data: Dict, file_path: str) -> None:

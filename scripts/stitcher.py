@@ -87,17 +87,24 @@ class ChunkStitcher:
 
     def _stitch_pair_split(self, text_a: str, text_b: str) -> Tuple[str, str]:
         """
-        Projects sentences, finds pivot, and returns the two segments to be joined.
-        Returns: (Text_A_Trimmed, Text_B_Trimmed)
+        Projects sentences, finds pivot, and returns segments using INDEX SLICING 
+        to preserve original whitespace/paragraphs.
         """
-        # 1. Parse Sentences
-        sents_a = nltk.sent_tokenize(text_a)
-        sents_b = nltk.sent_tokenize(text_b)
+        # Load tokenizer for span detection
+        tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
+        
+        # Get spans (start, end) indices for every sentence
+        spans_a = list(tokenizer.span_tokenize(text_a))
+        spans_b = list(tokenizer.span_tokenize(text_b))
+        
+        # Also get text versions for the vectorizer
+        sents_a = [text_a[start:end] for start, end in spans_a]
+        sents_b = [text_b[start:end] for start, end in spans_b]
         
         if not sents_a: return text_a, text_b
         if not sents_b: return text_a, text_b
 
-        # 2. Vectorize Tail of A and Head of B
+        # --- EXISTING VECTOR LOGIC STARTS HERE ---
         offset_a = max(0, len(sents_a) - self.scan_depth)
         scan_sents_a = sents_a[offset_a:]
 
@@ -107,41 +114,47 @@ class ChunkStitcher:
         vecs_a = self.model.encode(scan_sents_a)
         vecs_b = self.model.encode(scan_sents_b)
 
-        # 3. Apply Smoothing Window
+        if len(vecs_a) == 0 or len(vecs_b) == 0:
+            return text_a, text_b
+
         smoothed_a = self._apply_sliding_window(vecs_a)
         smoothed_b = self._apply_sliding_window(vecs_b)
 
-        # 4. Find Coarse Match
         rel_pivot_a, rel_pivot_b, score = self._find_pivot_point(smoothed_a, smoothed_b)
+        # --- EXISTING VECTOR LOGIC ENDS HERE ---
 
         if score >= self.similarity_threshold:
-            # 5. Refine Alignment
-            # Find exact raw match near the smoothed pivot
+            # Refine
             final_rel_b_idx = self._refine_pivot_alignment(
                 vecs_a[rel_pivot_a], 
                 vecs_b, 
                 rel_pivot_b
             )
             
-            # Calculate absolute indices
+            # Calculate absolute index of the sentence in the list
             abs_pivot_a_idx = offset_a + rel_pivot_a
             
             logger.info(f"  [Match] A[{abs_pivot_a_idx}] -> B[{final_rel_b_idx}] (Sim: {score:.3f})")
             
-            # Create Segments
-            # A: Include up to pivot
-            part_a_sents = sents_a[:abs_pivot_a_idx+1]
-            part_a = " ".join(part_a_sents)
+            # --- FIX: SLICING INSTEAD OF JOINING ---
             
-            # B: Exclude matching sentence
-            part_b_sents = sents_b[final_rel_b_idx+1:]
-            part_b = " ".join(part_b_sents)
+            # For Chunk A: Cut at the END of the pivot sentence
+            # spans_a[i] returns (start, end). We want the 'end' of the pivot sentence.
+            cut_point_a = spans_a[abs_pivot_a_idx][1]
+            part_a = text_a[:cut_point_a]
+            
+            # For Chunk B: Cut at the START of the sentence AFTER the pivot
+            # We want to skip the matching sentence in B.
+            if final_rel_b_idx + 1 < len(spans_b):
+                cut_point_b = spans_b[final_rel_b_idx + 1][0]
+                part_b = text_b[cut_point_b:]
+            else:
+                part_b = "" # Pivot was the very last sentence of B
             
             return part_a, part_b
             
         else:
             logger.warning(f"  [Fail] No pivot found (Max: {score:.3f}). Appending.")
-            # Stitch failed; return separated by newlines
             return text_a + "\n\n", text_b
 
     def _refine_pivot_alignment(self, target_vec_a: np.ndarray, vecs_b: np.ndarray, initial_b_idx: int) -> int:
@@ -194,3 +207,4 @@ class ChunkStitcher:
         sim_matrix = cosine_similarity(vecs_a, vecs_b)
         max_idx = np.unravel_index(np.argmax(sim_matrix, axis=None), sim_matrix.shape)
         return max_idx[0], max_idx[1], float(sim_matrix[max_idx])
+    
