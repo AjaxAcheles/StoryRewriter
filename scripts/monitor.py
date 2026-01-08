@@ -12,12 +12,15 @@ class TemperatureGuard:
     """
     
     def __init__(self, config):
+        self.config = config
         self.enabled = config['monitoring'].get('enabled', True)
         self.max_temp = config['monitoring'].get('max_temp_celsius', 85)
         self.resume_temp = config['monitoring'].get('resume_temp_celsius', 75)
         self.check_interval = config['monitoring'].get('check_interval_seconds', 3)
         self.min_valid_temp = config['monitoring'].get('min_valid_temp_celsius', 20)
         self.cooldown_sensor_error = config['monitoring'].get('cooldown_seconds_in_case_of_sensor_error', 15)
+
+        self.announced_ignored_sensors = False
         
         self._wmi = None
         self._use_lhm = True  # Track active sensor source
@@ -61,7 +64,13 @@ class TemperatureGuard:
                 sensors = self._wmi.Sensor(SensorType="Temperature")
                 for sensor in sensors:
                     if sensor.Value and sensor.Value > max_found:
-                        max_found = sensor.Value
+                        if sensor.Name in self.config['monitoring'].get('ignored_sensors_names', []):
+                            # Only log ignored sensors once
+                            if not self.announced_ignored_sensors:
+                                logger.info(f"[Temp] Ignoring sensor(s): {sensor.Name}. This message will not repeat.")
+                                self.announced_ignored_sensors = True
+                        else:
+                            max_found = sensor.Value
             else:
                 # Query Windows MSAcpi (Deci-Kelvin to Celsius)
                 thermal_zones = self._wmi.MSAcpi_ThermalZoneTemperature()

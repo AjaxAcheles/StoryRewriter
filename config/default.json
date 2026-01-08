@@ -8,7 +8,7 @@
   "model": {
     "provider": "ollama",
     "model_name": "gemma2:latest",
-    "num_thread": 9,
+    "num_thread": 8,
     "num_ctx": 8192,
     "temperature": 0.7,
     "top_p": 0.91,
@@ -42,7 +42,8 @@
     "resume_temp_celsius": 75,
     "check_interval_seconds": 1,
     "cooldown_seconds_in_case_of_sensor_error": 15,
-    "min_valid_temp_celsius": 20
+    "min_valid_temp_celsius": 20,
+    "ignored_sensors_names": ["GPU Hot Spot"]
   },
   "processing": {
     "validation_tolerance_percent": 20,
