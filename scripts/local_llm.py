@@ -150,6 +150,9 @@ class OllamaRewriter:
             
             logger.debug(f"[LLM] Inference complete: {elapsed:.1f}s")
             return rewritten_text
+        
+        except ValidationFailure:
+            raise
 
         except requests.exceptions.Timeout:
             raise TimeoutError(f"Ollama timed out (>{self.timeout}s)")
