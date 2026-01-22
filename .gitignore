@@ -4,7 +4,8 @@ rewriter.log
 /LibreHardwareMonitor
 /input
 /StoryRewriter_venv
-
+/config/default.json
+/config/style_prompt.txt
 
 
 # Byte-compiled / optimized / DLL files

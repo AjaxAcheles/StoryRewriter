@@ -1,6 +1,6 @@
 {
   "manuscript": {
-    "input_path": "./input/Heroic Myth.md",
+    "input_path": "./input/Bestowal.md",
     "encoding": "utf-8",
     "chapter_marker_pattern": "^[#\\s]*Chapter\\s+\\d+",
     "fallback_chapter_length_words": 4000
@@ -21,8 +21,8 @@
     "timeout_seconds": 800
   },
   "prompts": {
-    "system_prompt": "You are a precise line editor and ghostwriter. Your task is to rewrite the provided text to improve vocabulary, flow, and sentence variety while preserving the original length and content. \n\nRULES:\n1. Do NOT summarize or condense. The output must be the same length as the input or more.\n2. Do NOT remove dialogue internal monologue, or descriptive details. However, you are allowed to rephrase currentlly existing dialogue to fit the characters better and fix grammar mistakes in their speech. You are also allowed to slightly rewrite descriptive details to improve clarity and add some internal dialogue if it fits the scene.\n3. You may split long or run on sentences, but do not merge distinct ideas.\n4. Maintain the original POV and tense exactly. \nGive me ONLY the rephrased and polished text as output, with no additional commentary or notes.",    
-    "additional_instructions_on_retry": "\n\n[IMPORTANT RETRY INSTRUCTION]: Your previous draft was REJECTED because it did not follow the rules. You MUST NOT summarize. \n Remember to give me ONLY the rewritten text as output, with no additional commentary or notes."
+    "system_prompt": "You are a precise line editor and ghostwriter. Your task is to rewrite the provided text to improve vocabulary, flow, and sentence variety while preserving the original length and content. \n\nRULES:\n1. Do NOT summarize or condense. The output must be the same length as the input but preferably more.\n2. Do NOT remove dialogue internal monologue, or descriptive details. However, you are allowed to rephrase currently existing dialogue to fit the speaker's character better and fix grammar mistakes in their speech. You are also allowed to slightly rewrite descriptive details to improve clarity and add some internal dialogue if it fits the scene.\n3. You may split long or run on sentences, but do not merge distinct ideas.\n4. Maintain the original POV and tense. \nGive me ONLY the rephrased and polished text as output, with no additional commentary or notes.",    
+    "additional_instructions_on_retry": "\n\n[IMPORTANT RETRY INSTRUCTION]: Your previous draft was REJECTED because it did not follow one or more of the rules. You MUST NOT summarize. You MUST NOT remove any dialogue internal monologue, or descriptive details. You MUST NOT merge distinct ideas. \n Remember to give me ONLY the rewritten text as output, with no additional commentary or notes."
   },
   "chunking": {
     "context_window_tokens": 8192,
@@ -38,8 +38,8 @@
   },
   "monitoring": {
     "enabled": true,
-    "max_temp_celsius": 85,
-    "resume_temp_celsius": 75,
+    "max_temp_celsius": 75,
+    "resume_temp_celsius": 68,
     "check_interval_seconds": 1,
     "cooldown_seconds_in_case_of_sensor_error": 15,
     "min_valid_temp_celsius": 20,
@@ -51,8 +51,8 @@
     "timeout_seconds": 600,
     "retry_on_failure": true,
     "max_retries": 3,
-    "min_length_ratio": 0.93, 
-    "max_length_ratio": 1.6,
+    "min_length_ratio": 0.95, 
+    "max_length_ratio": 1.5,
     "retry_strictness_ratio": 0.75,
     "api_request_timeout_seconds": 10,
     "repetition_threshold_count": 4
