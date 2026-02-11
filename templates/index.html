@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Story Rewriter (Dark Mode)</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --border-color: #333;
+            --input-bg: #2c2c2c;
+            --accent-color: #bb86fc;
+            --btn-primary: #3700b3;
+            --btn-danger: #cf6679;
+            --btn-secondary: #03dac6;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            max-width: 1000px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: var(--bg-color); 
+            color: var(--text-color); 
+        }
+
+        .card { 
+            background: var(--card-bg); 
+            padding: 25px; 
+            border-radius: 12px; 
+            border: 1px solid var(--border-color);
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        h1, h2, h3 { color: #ffffff; margin-top: 0; }
+        h1 { text-align: center; margin-bottom: 30px; letter-spacing: 1px;}
+
+        /* Grid Layouts */
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+        
+        .section-title {
+            grid-column: 1 / -1;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            color: var(--accent-color);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        label { 
+            display: block; 
+            margin-top: 15px; 
+            font-size: 0.85em; 
+            color: #aaa; 
+            margin-bottom: 5px;
+        }
+
+        input, select, textarea { 
+            width: 100%; 
+            padding: 10px; 
+            background: var(--input-bg); 
+            border: 1px solid var(--border-color); 
+            border-radius: 6px; 
+            color: white; 
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        
+        input:focus { outline: 2px solid var(--accent-color); border-color: transparent; }
+
+        /* Buttons */
+        .btn-group { display: flex; gap: 15px; align-items: center; }
+        
+        button { 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: opacity 0.2s;
+        }
+        button:hover { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-primary { background: var(--btn-primary); color: white; }
+        .btn-danger { background: var(--btn-danger); color: #000; }
+        .btn-secondary { background: var(--btn-secondary); color: #000; float: right;}
+
+        /* Logs */
+        #log-container { 
+            background: #000; 
+            color: #0f0; 
+            padding: 15px; 
+            height: 400px; 
+            overflow-y: scroll; 
+            font-family: 'Consolas', 'Monaco', monospace; 
+            border-radius: 6px; 
+            font-size: 0.85em; 
+            border: 1px solid var(--border-color);
+            white-space: pre-wrap;
+        }
+
+        /* Status Badge */
+        .status-badge { 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 0.8em; 
+            font-weight: bold; 
+            text-transform: uppercase;
+        }
+        .status-idle { background: #333; color: #aaa; }
+        .status-running { background: #003300; color: #00ff00; border: 1px solid #005500; }
+        .status-error { background: #330000; color: #ff0000; border: 1px solid #550000; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-color); }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 5px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body>
+
+    <h1>AI Story Rewriter</h1>
+
+    <div class="card">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="btn-group">
+                <button onclick="startPipeline()" class="btn-primary" id="startBtn">Start Processing</button>
+                <button onclick="stopPipeline()" class="btn-danger" id="stopBtn" disabled>Stop</button>
+            </div>
+            <div>
+                <span style="margin-right: 10px; color: #888;">STATUS:</span>
+                <span id="statusBadge" class="status-badge status-idle">IDLE</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 style="margin:0;">Configuration</h2>
+            <button onclick="saveConfig()" class="btn-secondary">Save Settings</button>
+        </div>
+
+        <div class="grid-2">
+            <div class="section-title">Manuscript & Output</div>
+            
+            <div>
+                <label>Input File Path</label>
+                <input type="text" id="inputPath" placeholder="./input/story.md">
+            </div>
+            <div>
+                <label>Output Directory</label>
+                <input type="text" id="outputDir" placeholder="./output">
+            </div>
+            <div>
+                <label>Chapter Regex Pattern</label>
+                <input type="text" id="chapterPattern" placeholder="^## Chapter \d+">
+            </div>
+            <div>
+                <label>Fallback Chapter Length (Words)</label>
+                <input type="number" id="fallbackLen" value="4000">
+            </div>
+
+            <div class="section-title">LLM Model Parameters</div>
+            
+            <div>
+                <label>Ollama Model Name</label>
+                <input type="text" id="modelName" placeholder="mistral:latest">
+            </div>
+            <div>
+                <label>Ollama Base URL</label>
+                <input type="text" id="baseUrl" value="http://localhost:11434">
+            </div>
+            <div>
+                <label>Temperature (Creativity)</label>
+                <input type="number" id="temperature" step="0.05" min="0" max="1">
+            </div>
+            <div>
+                <label>Context Window (Total Tokens)</label>
+                <input type="number" id="numCtx" value="8192">
+            </div>
+            <div>
+                <label>Num Predict (Max Output)</label>
+                <input type="number" id="numPredict" value="2000">
+            </div>
+            <div>
+                <label>Top P</label>
+                <input type="number" id="topP" step="0.01" value="0.9">
+            </div>
+            <div>
+                <label>Top K</label>
+                <input type="number" id="topK" value="40">
+            </div>
+            <div>
+                <label>Seed (Randomness)</label>
+                <input type="number" id="seed" value="42">
+            </div>
+
+            <div class="section-title">Chunking Strategy</div>
+
+            <div>
+                <label>Target Chunk Size (Tokens)</label>
+                <input type="number" id="targetChunk" value="1000">
+            </div>
+            <div>
+                <label>Overlap (Tokens)</label>
+                <input type="number" id="overlap" value="500">
+            </div>
+            <div>
+                <label>Reserve for Output (Tokens)</label>
+                <input type="number" id="reserveOutput" value="2000">
+                <small style="color: #666;">*Fixes KeyError if missing</small>
+            </div>
+            <div>
+                <label>Safety Buffer (Tokens)</label>
+                <input type="number" id="safetyBuffer" value="500">
+            </div>
+            <div>
+                <label>Min Chunk Size</label>
+                <input type="number" id="minChunk" value="500">
+            </div>
+             <div>
+                <label>Est. Chars per Token</label>
+                <input type="number" id="charsPerToken" step="0.1" value="3.5">
+            </div>
+
+            <div class="section-title">Processing & Stitching</div>
+            
+            <div>
+                <label>Max Retries (on fail)</label>
+                <input type="number" id="maxRetries" value="3">
+            </div>
+            <div>
+                <label>Validation Tolerance (%)</label>
+                <input type="number" id="valTolerance" value="20">
+            </div>
+            <div>
+                <label>Stitcher Model</label>
+                <input type="text" id="stitchModel" value="all-MiniLM-L6-v2">
+            </div>
+            <div>
+                <label>Stitch Similarity Threshold (0-1)</label>
+                <input type="number" id="stitchThresh" step="0.05" value="0.65">
+            </div>
+
+            <div class="section-title">Hardware Safety</div>
+            
+            <div>
+                <label>Enable Monitoring</label>
+                <select id="monEnabled">
+                    <option value="true">True</option>
+                    <option value="false">False</option>
+                </select>
+            </div>
+            <div>
+                <label>Max Temp (°C)</label>
+                <input type="number" id="maxTemp" value="85">
+            </div>
+             <div>
+                <label>Resume Temp (°C)</label>
+                <input type="number" id="resumeTemp" value="75">
+            </div>
+            <div>
+                <label>Check Interval (sec)</label>
+                <input type="number" id="checkInt" value="3">
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Live System Logs</h3>
+        <div id="log-container"></div>
+    </div>
+
+    <script>
+        // Full Default Config Structure matching your Python requirements
+        let currentConfig = {
+            manuscript: { 
+                input_path: "./input/story.md", 
+                chapter_marker_pattern: "^## Chapter \\d+",
+                fallback_chapter_length_words: 4000
+            },
+            model: { 
+                provider: "ollama",
+                model_name: "mistral:latest",
+                ollama_base_url: "http://localhost:11434",
+                num_ctx: 8192,
+                temperature: 0.7,
+                num_predict: 2000,
+                top_p: 0.9,
+                top_k: 40,
+                seed: 42,
+                timeout_seconds: 600
+            },
+            chunking: {
+                context_window_tokens: 8192,
+                target_chunk_size_tokens: 1000,
+                overlap_tokens: 500,
+                reserve_for_output_tokens: 2000, // The key that was missing!
+                safety_buffer_tokens: 500,
+                min_chunk_size_tokens: 500,
+                chars_per_token_estimate: 3.5
+            },
+            processing: {
+                max_retries: 3,
+                validation_tolerance_percent: 20,
+                retry_on_failure: true
+            },
+            stitching: {
+                model_name: "all-MiniLM-L6-v2",
+                similarity_threshold: 0.65,
+                scan_depth_sentences: 30
+            },
+            monitoring: {
+                enabled: true,
+                max_temp_celsius: 85,
+                resume_temp_celsius: 75,
+                check_interval_seconds: 3
+            },
+            output: {
+                output_dir: "./output",
+                save_intermediate_chunks: true
+            }
+        };
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                const data = await res.json();
+                
+                // Deep merge incoming data into currentConfig to ensure missing keys (like reserve_for_output) are filled by defaults
+                if (Object.keys(data).length > 0) {
+                    // Simple deep merge for 2 levels
+                    for (let section in currentConfig) {
+                        if (data[section]) {
+                            currentConfig[section] = { ...currentConfig[section], ...data[section] };
+                        }
+                    }
+                }
+                updateUI();
+            } catch (e) {
+                console.error("Config load failed", e);
+            }
+        }
+
+        function updateUI() {
+            // Manuscript
+            safeSet('inputPath', currentConfig.manuscript.input_path);
+            safeSet('outputDir', currentConfig.output.output_dir);
+            safeSet('chapterPattern', currentConfig.manuscript.chapter_marker_pattern);
+            safeSet('fallbackLen', currentConfig.manuscript.fallback_chapter_length_words);
+
+            // Model
+            safeSet('modelName', currentConfig.model.model_name);
+            safeSet('baseUrl', currentConfig.model.ollama_base_url);
+            safeSet('temperature', currentConfig.model.temperature);
+            safeSet('numCtx', currentConfig.model.num_ctx); // Make sure this matches config key
+            safeSet('numPredict', currentConfig.model.num_predict);
+            safeSet('topP', currentConfig.model.top_p);
+            safeSet('topK', currentConfig.model.top_k);
+            safeSet('seed', currentConfig.model.seed);
+
+            // Chunking
+            safeSet('targetChunk', currentConfig.chunking.target_chunk_size_tokens);
+            safeSet('overlap', currentConfig.chunking.overlap_tokens);
+            safeSet('reserveOutput', currentConfig.chunking.reserve_for_output_tokens);
+            safeSet('safetyBuffer', currentConfig.chunking.safety_buffer_tokens);
+            safeSet('minChunk', currentConfig.chunking.min_chunk_size_tokens);
+            safeSet('charsPerToken', currentConfig.chunking.chars_per_token_estimate);
+
+            // Processing & Stitching
+            safeSet('maxRetries', currentConfig.processing.max_retries);
+            safeSet('valTolerance', currentConfig.processing.validation_tolerance_percent);
+            safeSet('stitchModel', currentConfig.stitching.model_name);
+            safeSet('stitchThresh', currentConfig.stitching.similarity_threshold);
+
+            // Monitor
+            safeSet('monEnabled', currentConfig.monitoring.enabled.toString());
+            safeSet('maxTemp', currentConfig.monitoring.max_temp_celsius);
+            safeSet('resumeTemp', currentConfig.monitoring.resume_temp_celsius);
+            safeSet('checkInt', currentConfig.monitoring.check_interval_seconds);
+        }
+
+        function safeSet(id, val) {
+            const el = document.getElementById(id);
+            if(el) el.value = val !== undefined ? val : "";
+        }
+
+        async function saveConfig() {
+            // Read UI back into Object
+            currentConfig.manuscript.input_path = document.getElementById('inputPath').value;
+            currentConfig.output.output_dir = document.getElementById('outputDir').value;
+            currentConfig.manuscript.chapter_marker_pattern = document.getElementById('chapterPattern').value;
+            currentConfig.manuscript.fallback_chapter_length_words = parseInt(document.getElementById('fallbackLen').value);
+
+            currentConfig.model.model_name = document.getElementById('modelName').value;
+            currentConfig.model.ollama_base_url = document.getElementById('baseUrl').value;
+            currentConfig.model.temperature = parseFloat(document.getElementById('temperature').value);
+            currentConfig.model.num_ctx = parseInt(document.getElementById('numCtx').value);
+            // IMPORTANT: Sync context_window_tokens with num_ctx for Chunker consistency
+            currentConfig.chunking.context_window_tokens = parseInt(document.getElementById('numCtx').value);
+            currentConfig.model.num_predict = parseInt(document.getElementById('numPredict').value);
+            currentConfig.model.top_p = parseFloat(document.getElementById('topP').value);
+            currentConfig.model.top_k = parseInt(document.getElementById('topK').value);
+            currentConfig.model.seed = parseInt(document.getElementById('seed').value);
+
+            currentConfig.chunking.target_chunk_size_tokens = parseInt(document.getElementById('targetChunk').value);
+            currentConfig.chunking.overlap_tokens = parseInt(document.getElementById('overlap').value);
+            currentConfig.chunking.reserve_for_output_tokens = parseInt(document.getElementById('reserveOutput').value);
+            currentConfig.chunking.safety_buffer_tokens = parseInt(document.getElementById('safetyBuffer').value);
+            currentConfig.chunking.min_chunk_size_tokens = parseInt(document.getElementById('minChunk').value);
+            currentConfig.chunking.chars_per_token_estimate = parseFloat(document.getElementById('charsPerToken').value);
+
+            currentConfig.processing.max_retries = parseInt(document.getElementById('maxRetries').value);
+            currentConfig.processing.validation_tolerance_percent = parseInt(document.getElementById('valTolerance').value);
+            
+            currentConfig.stitching.model_name = document.getElementById('stitchModel').value;
+            currentConfig.stitching.similarity_threshold = parseFloat(document.getElementById('stitchThresh').value);
+
+            currentConfig.monitoring.enabled = document.getElementById('monEnabled').value === 'true';
+            currentConfig.monitoring.max_temp_celsius = parseFloat(document.getElementById('maxTemp').value);
+            currentConfig.monitoring.resume_temp_celsius = parseFloat(document.getElementById('resumeTemp').value);
+            currentConfig.monitoring.check_interval_seconds = parseInt(document.getElementById('checkInt').value);
+
+            await fetch('/api/config', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(currentConfig)
+            });
+            alert('Configuration saved to default.json!');
+        }
+
+        async function startPipeline() {
+            const btn = document.getElementById('startBtn');
+            const badge = document.getElementById('statusBadge');
+            
+            btn.disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            badge.textContent = "RUNNING";
+            badge.className = "status-badge status-running";
+
+            await saveConfig(); 
+
+            const res = await fetch('/api/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(currentConfig)
+            });
+            
+            if (!res.ok) {
+                const err = await res.json();
+                alert("Error: " + err.message);
+                btn.disabled = false;
+                badge.textContent = "ERROR";
+                badge.className = "status-badge status-error";
+            }
+        }
+
+        async function stopPipeline() {
+            await fetch('/api/stop', { method: 'POST' });
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('statusBadge').textContent = "STOPPING...";
+        }
+
+        const logContainer = document.getElementById('log-container');
+        const evtSource = new EventSource("/stream_logs");
+        
+        evtSource.onmessage = function(e) {
+            if(e.data === ": heartbeat") return;
+            
+            const newLog = document.createElement("div");
+            newLog.textContent = e.data;
+            logContainer.appendChild(newLog);
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            if (e.data.includes("Pipeline Complete") || e.data.includes("Pipeline stopped")) {
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                document.getElementById('statusBadge').textContent = "IDLE";
+                document.getElementById('statusBadge').className = "status-badge status-idle";
+            }
+        };
+
+        loadConfig();
+    </script>
+</body>
+</html>

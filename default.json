@@ -1,0 +1,48 @@
+{
+  "manuscript": {
+    "input_path": "./input/test_chapter.md",
+    "chapter_marker_pattern": "^## Chapter \\d+",
+    "fallback_chapter_length_words": 4000
+  },
+  "model": {
+    "provider": "ollama",
+    "model_name": "mistral:latest",
+    "ollama_base_url": "http://localhost:11434",
+    "num_ctx": 8192,
+    "temperature": 0.7,
+    "num_predict": 2000,
+    "top_p": 0.9,
+    "top_k": 40,
+    "seed": 42,
+    "timeout_seconds": 600
+  },
+  "chunking": {
+    "context_window_tokens": 8192,
+    "target_chunk_size_tokens": 1000,
+    "overlap_tokens": 500,
+    "reserve_for_output_tokens": 2000,
+    "safety_buffer_tokens": 500,
+    "min_chunk_size_tokens": 500,
+    "chars_per_token_estimate": 3.5
+  },
+  "processing": {
+    "max_retries": 4,
+    "validation_tolerance_percent": 20,
+    "retry_on_failure": true
+  },
+  "stitching": {
+    "model_name": "all-MiniLM-L6-v2",
+    "similarity_threshold": 0.65,
+    "scan_depth_sentences": 30
+  },
+  "monitoring": {
+    "enabled": true,
+    "max_temp_celsius": 85,
+    "resume_temp_celsius": 75,
+    "check_interval_seconds": 3
+  },
+  "output": {
+    "output_dir": "./output",
+    "save_intermediate_chunks": true
+  }
+}

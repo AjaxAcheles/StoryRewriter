@@ -30,7 +30,7 @@ Unlike simple "copy-paste" tools, this system handles the complexities of contex
 
 2.  **Install Python dependencies:**
     ```bash
-    pip install requests wmi pywin32 sentence-transformers nltk scikit-learn numpy
+    pip install requests wmi pywin32 sentence-transformers nltk scikit-learn numpy tiktoken flask
     ```
 
 3.  **Pull your desired LLM:**
